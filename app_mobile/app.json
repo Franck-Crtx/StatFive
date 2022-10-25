@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "StatFiveV3",
+    "slug": "StatFiveV3",
+    "platforms": [
+      "ios",
+      "android",
+      "web"
+    ],
+    "version": "3.0.0",
+    "orientation": "portrait",
+    "icon": "./public/StatFiveV3.png",
+    "splash": {
+      "image": "./public/Splash-StatFiveV3.png",
+      "resizeMode": "cover",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mokhtarisofiane93.StatFiveV3"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./public/StatFiveV3.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.mokhtarisofiane93.StatFiveV3"
+    },
+    "web": {
+      "favicon": "./public/StatFive-nobg.png"
+    }
+  }
+}

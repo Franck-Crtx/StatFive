@@ -1,0 +1,112 @@
+stages:
+  - test
+  - setup
+  - build
+  - publish
+  - deploy
+
+
+.ssh-connect-preprod:
+  image: debian:11
+  variables:
+    COMMAND: "echo 'You need to implement COMMAND Variable'"
+  before_script:
+    - 'command -v ssh-agent >/dev/null || ( apt-get update -y && apt-get install openssh-client -y )'
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY" | tr -d '\r' | ssh-add -
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - touch ~/.ssh/known_hosts
+    - echo "$SSH_KNOWN_HOSTS" >> ~/.ssh/known_hosts
+  script:
+    - ssh "$PREPROD_GITUSER"@"$PREPROD_SERVER_IP" "cd $PATH_GPE_DIR; $COMMAND"
+
+
+functionnal-test-web:
+  image: 
+    name: cypress/included:10.9.0
+    entrypoint: [""]
+  stage: test
+  variables:
+    API_URL: "https://api.preprod.statfive.fr/api"
+  script:
+    - cd web/
+    - npm install --force
+    - yarn build
+    - yarn testing-ci
+    - mkdir reports
+  artifacts:
+    when: always
+    name: "coverage-$CI_COMMIT_REF_NAME"
+    paths:
+      - web/reports
+      - web/cypress/videos//*.mp4
+      - web/cypress/screenshots//*.png
+    expire_in: 1 week
+  only:
+    refs:
+      - staging
+
+lint-web:
+  image: node
+  stage: test
+  script:
+    - cd web/
+    - npm i --force eslint
+    - yarn lint
+  only:
+    refs:
+      - staging
+
+
+pull-web-git:
+  stage: setup
+  extends: .ssh-connect-preprod
+  variables:
+    COMMAND: "cd web/ && sudo git pull origin staging"
+  needs: [functionnal-test-web, lint-web]
+  only:
+    refs:
+      - staging
+
+
+build-web:
+  stage: build
+  extends: .ssh-connect-preprod
+  variables:
+    COMMAND: "sudo docker-compose build web"
+  needs: [pull-web-git]
+  only:
+    refs:
+      - staging
+
+
+publish-web:
+  stage: publish
+  extends: .ssh-connect-preprod
+  variables:
+    COMMAND: "sudo docker push acalhabi/statfive_web"
+  only:
+    refs:
+      - master
+
+
+deploy-preprod-web:
+  stage: deploy
+  extends: .ssh-connect-preprod
+  variables:
+    COMMAND: "sudo docker-compose up -d"
+  needs: [build-web]
+  only:
+    refs:
+      - staging
+
+deploy-prod-web:
+  stage: deploy
+  extends: .ssh-connect-preprod
+  variables:
+    COMMAND: "kubectl rollout restart deployment web -n statfive"
+  needs: [publish-web]
+  only:
+    refs:
+      - master

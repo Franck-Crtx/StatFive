@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: statfive
+  name: tracker-app
+  namespace: statfive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statfive
+      tier: tracker-app
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: statfive
+        tier: tracker-app
+    spec:
+      containers:
+        - image: "acalhabi/statfive_tracker"
+          name: tracker-app
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - mountPath: "/app/video"
+              name: api-storage
+      volumes:
+        - name: api-storage
+          persistentVolumeClaim:
+            claimName: api-claim
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: statfive
+  name: tracker-worker
+  namespace: statfive
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: statfive
+      tier: tracker-worker
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: statfive
+        tier: tracker-worker
+    spec:
+      containers:
+        - image: "acalhabi/statfive_tracker"
+          name: tracker-worker
+          command: ["rq", "worker", "--url", "redis://redis:6379"]
+          resources:
+            limits:
+              memory: "2Gi"
+            requests:
+              memory: "1Gi"
+          env:
+            - name: OBJC_DISABLE_INITIALIZE_FORK_SAFETY
+              value: "YES"
+          volumeMounts:
+            - mountPath: "/app/video"
+              name: api-storage
+      volumes:
+        - name: api-storage
+          persistentVolumeClaim:
+            claimName: api-claim
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: statfive
+  name: tracker-app
+  namespace: statfive
+spec:
+  ports:
+    - name: "5000"
+      port: 5000
+      targetPort: 5000
+  selector:
+    app: statfive
+    tier: tracker-app

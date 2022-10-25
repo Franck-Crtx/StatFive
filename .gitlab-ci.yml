@@ -1,0 +1,33 @@
+stages:
+  - triggers
+
+
+statfive_api:
+  stage: triggers
+  trigger:
+    include: api/.gitlab-ci.yml
+  rules:
+    - changes:
+        - api/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+
+statfive_web:
+  stage: triggers
+  trigger:
+    include: web/.gitlab-ci.yml
+  rules:
+    - changes:
+        - web/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+
+statfive_tracker:
+  stage: triggers
+  trigger:
+    include: tracker/.gitlab-ci.yml
+  rules:
+    - changes:
+        - tracker/*
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
